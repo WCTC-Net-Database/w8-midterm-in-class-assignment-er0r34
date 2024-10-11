@@ -15,6 +15,9 @@ public class GameEngine
     private readonly IRoomFactory _roomFactory;
     private ICharacter _player;
     private ICharacter _goblin;
+    private ICharacter _ghost;
+    private ICharacter _orc;
+    private ICharacter _dragon;
 
     private List<IRoom> _rooms;
 
@@ -25,6 +28,13 @@ public class GameEngine
         _mapManager = mapManager;
         _outputManager = outputManager;
         _context = context;
+
+        _player = null!;
+        _goblin = null!;
+        _ghost = null!;
+        _orc = null!;
+        _dragon = null!;
+        _rooms = new List<IRoom>();
     }
 
     public void Run()
@@ -37,20 +47,140 @@ public class GameEngine
 
     private void AttackCharacter()
     {
-        // TODO Update this method to allow for attacking a selected monster in the room.
-        // TODO e.g. "Which monster would you like to attack?"
-        // TODO Right now it just attacks the first monster in the room.
-        // TODO It is ok to leave this functionality if there is only one monster in the room.
-        var target = _player.CurrentRoom.Characters.FirstOrDefault(c => c != _player);
-        if (target != null)
-        {
-            _player.Attack(target);
-        }
-        else
+        var monsters = _player.CurrentRoom.Characters.Where(c => c != _player).ToList();
+
+        if (monsters.Count == 0)
         {
             _outputManager.WriteLine("No characters to attack.", ConsoleColor.Red);
+            return;
+        }
+
+        if (monsters.Count == 1)
+        {
+            _player.Attack(monsters.First());
+            return;
+        }
+
+        _outputManager.WriteLine("Which monster would you like to attack first?", ConsoleColor.Cyan);
+        for (int i = 0; i < monsters.Count; i++)
+        {
+            _outputManager.WriteLine($"{i + 1}. {monsters[i].Name} ({monsters[i].Type})", ConsoleColor.Yellow);
+        }
+
+        _outputManager.Display();
+        var input = Console.ReadLine();
+
+        if (!int.TryParse(input, out int selectedIndex) || selectedIndex < 1 || selectedIndex > monsters.Count)
+        {
+            _outputManager.WriteLine("Invalid selection. No attack performed.", ConsoleColor.Red);
+            return;
+        }
+
+        var firstTarget = monsters[selectedIndex - 1];
+        monsters.RemoveAt(selectedIndex - 1);
+
+        _player.Attack(firstTarget);
+
+        while (firstTarget.HP > 0)
+        {
+            _outputManager.WriteLine($"Press enter to attack {firstTarget.Name} ({firstTarget.Type}) again.", ConsoleColor.Cyan);
+            _outputManager.Display();
+            Console.ReadLine();
+            _player.Attack(firstTarget);
+        }
+
+        _player.CurrentRoom.RemoveCharacter(firstTarget);
+
+        if (monsters.Count > 0)
+        {
+            _outputManager.WriteLine("Do you want to attack another monster? (yes/no)", ConsoleColor.Cyan);
+            _outputManager.Display();
+            var attackAnother = Console.ReadLine();
+
+            if (attackAnother?.Trim().ToLower() == "yes")
+            {
+                _outputManager.WriteLine("Which monster would you like to attack next?", ConsoleColor.Cyan);
+                for (int i = 0; i < monsters.Count; i++)
+                {
+                    _outputManager.WriteLine($"{i + 1}. {monsters[i].Name} ({monsters[i].Type})", ConsoleColor.Yellow);
+                }
+
+                _outputManager.Display();
+                input = Console.ReadLine();
+
+                if (!int.TryParse(input, out selectedIndex) || selectedIndex < 1 || selectedIndex > monsters.Count)
+                {
+                    _outputManager.WriteLine("Invalid selection. No attack performed.", ConsoleColor.Red);
+                    return;
+                }
+
+                var secondTarget = monsters[selectedIndex - 1];
+                monsters.RemoveAt(selectedIndex - 1);
+
+                _player.Attack(secondTarget);
+
+                while (secondTarget.HP > 0)
+                {
+                    _outputManager.WriteLine($"Press enter to attack {secondTarget.Name} ({secondTarget.Type}) again.", ConsoleColor.Cyan);
+                    _outputManager.Display();
+                    Console.ReadLine();
+                    _player.Attack(secondTarget);
+                }
+
+                _player.CurrentRoom.RemoveCharacter(secondTarget);
+
+                if (monsters.Count > 0)
+                {
+                    _outputManager.WriteLine("Do you want to attack another monster? (yes/no)", ConsoleColor.Cyan);
+                    _outputManager.Display();
+                    attackAnother = Console.ReadLine();
+
+                    if (attackAnother?.Trim().ToLower() == "yes")
+                    {
+                        _outputManager.WriteLine("Which monster would you like to attack next?", ConsoleColor.Cyan);
+                        for (int i = 0; i < monsters.Count; i++)
+                        {
+                            _outputManager.WriteLine($"{i + 1}. {monsters[i].Name} ({monsters[i].Type})", ConsoleColor.Yellow);
+                        }
+
+                        _outputManager.Display();
+                        input = Console.ReadLine();
+
+                        if (!int.TryParse(input, out selectedIndex) || selectedIndex < 1 || selectedIndex > monsters.Count)
+                        {
+                            _outputManager.WriteLine("Invalid selection. No attack performed.", ConsoleColor.Red);
+                            return;
+                        }
+
+                        var thirdTarget = monsters[selectedIndex - 1];
+
+                        _player.Attack(thirdTarget);
+
+                        while (thirdTarget.HP > 0)
+                        {
+                            _outputManager.WriteLine($"Press enter to attack {thirdTarget.Name} ({thirdTarget.Type}) again.", ConsoleColor.Cyan);
+                            _outputManager.Display();
+                            Console.ReadLine();
+                            _player.Attack(thirdTarget);
+                        }
+
+                        _player.CurrentRoom.RemoveCharacter(thirdTarget);
+                    }
+                    else
+                    {
+                        _outputManager.WriteLine("No further attacks performed.", ConsoleColor.Red);
+                    }
+                }
+            }
+            else
+            {
+                _outputManager.WriteLine("No further attacks performed.", ConsoleColor.Red);
+            }
         }
     }
+
+
+
 
     private void GameLoop()
     {
@@ -63,7 +193,6 @@ public class GameEngine
             _outputManager.WriteLine("3. Move East");
             _outputManager.WriteLine("4. Move West");
 
-            // Check if there are characters in the current room to attack
             if (_player.CurrentRoom.Characters.Any(c => c != _player))
             {
                 _outputManager.WriteLine("5. Attack");
@@ -99,7 +228,6 @@ public class GameEngine
                     {
                         _outputManager.WriteLine("No characters to attack.", ConsoleColor.Red);
                     }
-
                     break;
                 case "6":
                     _outputManager.WriteLine("Exiting game...", ConsoleColor.Red);
@@ -111,7 +239,6 @@ public class GameEngine
                     break;
             }
 
-            // Update map manager with the current room after movement
             if (!string.IsNullOrEmpty(direction))
             {
                 _outputManager.Clear();
@@ -123,13 +250,18 @@ public class GameEngine
 
     private void LoadMonsters()
     {
-        _goblin = _context.Characters.OfType<Goblin>().FirstOrDefault();
+        _goblin = _context.Characters.OfType<Goblin>().FirstOrDefault() ?? new Goblin();
+        _ghost = _context.Characters.OfType<Ghost>().FirstOrDefault() ?? new Ghost();
+        _dragon = _context.Characters.OfType<Dragon>().FirstOrDefault() ?? new Dragon();
+        _orc = _context.Characters.OfType<Orc>().FirstOrDefault() ?? new Orc();
 
         var random = new Random();
         var randomRoom = _rooms[random.Next(_rooms.Count)];
-        randomRoom.AddCharacter(_goblin); // Use helper method
+        if (_goblin != null) randomRoom.AddCharacter(_goblin);
 
-        // TODO Load your two new monsters here into the same room
+        var randomRoom2 = _rooms[random.Next(_rooms.Count)];
+        if (_dragon != null) randomRoom2.AddCharacter(_dragon);
+        if (_orc != null) randomRoom2.AddCharacter(_orc);
     }
 
     private void SetupGame()
@@ -137,34 +269,38 @@ public class GameEngine
         var startingRoom = SetupRooms();
         _mapManager.UpdateCurrentRoom(startingRoom);
 
-        _player = _context.Characters.OfType<Player>().FirstOrDefault();
+        _player = _context.Characters.OfType<Player>().FirstOrDefault() ?? new Player();
         _player.Move(startingRoom);
         _outputManager.WriteLine($"{_player.Name} has entered the game.", ConsoleColor.Green);
 
-        // Load monsters into random rooms 
         LoadMonsters();
 
-        // Pause for a second before starting the game loop
         Thread.Sleep(1000);
         GameLoop();
     }
 
     private IRoom SetupRooms()
     {
-        // TODO Update this method to create more rooms and connect them together
-
         var entrance = _roomFactory.CreateRoom("entrance", _outputManager);
         var treasureRoom = _roomFactory.CreateRoom("treasure", _outputManager);
         var dungeonRoom = _roomFactory.CreateRoom("dungeon", _outputManager);
         var library = _roomFactory.CreateRoom("library", _outputManager);
         var armory = _roomFactory.CreateRoom("armory", _outputManager);
         var garden = _roomFactory.CreateRoom("garden", _outputManager);
+        var bedroom = _roomFactory.CreateRoom("bedroom", _outputManager);
+        var hall = _roomFactory.CreateRoom("hall", _outputManager);
 
-        entrance.North = treasureRoom;
+        entrance.North = hall;
         entrance.West = library;
         entrance.East = garden;
 
-        treasureRoom.South = entrance;
+        hall.South = entrance;
+        hall.West = bedroom;
+        hall.North = treasureRoom;
+
+        bedroom.East = hall;
+
+        treasureRoom.South = hall;
         treasureRoom.West = dungeonRoom;
 
         dungeonRoom.East = treasureRoom;
@@ -176,8 +312,7 @@ public class GameEngine
 
         garden.West = entrance;
 
-        // Store rooms in a list for later use
-        _rooms = new List<IRoom> { entrance, treasureRoom, dungeonRoom, library, armory, garden };
+        _rooms = new List<IRoom> { entrance, treasureRoom, dungeonRoom, library, armory, garden, hall, bedroom };
 
         return entrance;
     }

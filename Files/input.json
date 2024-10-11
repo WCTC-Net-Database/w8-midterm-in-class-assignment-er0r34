@@ -47,5 +47,61 @@
     "Level": 2,
     "HP": 8,
     "Treasure": null
+  },
+  {
+    "$type": "Ghost",
+    "Name": "Spooky Ghost",
+    "Type": "Ghost",
+    "Level": 2,
+    "HP": 8,
+    "Treasure": "ring"
+  },
+  {
+    "$type": "Dragon",
+    "Name": "Fire Dragon",
+    "Type": "Dragon",
+    "Level": 3,
+    "HP": 22,
+    "Treasure": "fire ring"
+  },
+  {
+    "$type": "Dragon",
+    "Name": "Ice Dragon",
+    "Type": "Dragon",
+    "Level": 3,
+    "HP": 22,
+    "Treasure": "ice ring"
+  },
+  {
+    "$type": "Dragon",
+    "Name": "Lightning Dragon",
+    "Type": "Dragon",
+    "Level": 3,
+    "HP": 22,
+    "Treasure": "lightning ring"
+  },
+  {
+    "$type": "Orc",
+    "Name": "Orc Bleagh",
+    "Type": "Orc",
+    "Level": 2,
+    "HP": 12,
+    "Treasure": "wooden lance"
+  },
+  {
+    "$type": "Orc",
+    "Name": "Orc Ugh",
+    "Type": "Orc",
+    "Level": 2,
+    "HP": 12,
+    "Treasure": null
+  },
+  {
+    "$type": "Orc",
+    "Name": "Orc Argh",
+    "Type": "Orc",
+    "Level": 2,
+    "HP": 12,
+    "Treasure": "wooden shield"
   }
 ]
